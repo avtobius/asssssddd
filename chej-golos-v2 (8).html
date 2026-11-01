@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Чей голос?</title>
+<style>
+:root{
+  --bg:#f5f3ff;--card:#ffffff;--ink:#1d1b2e;--mute:#6d6a85;--line:#e3e0f3;
+  --accent:#6c4cf5;--accent-ink:#ffffff;--good:#1fa971;--bad:#e5484d;--soft:#efeaff;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14121f;--card:#1e1b30;--ink:#f1efff;--mute:#a29fc0;--line:#322e4d;
+    --accent:#8b73ff;--accent-ink:#120e2b;--good:#3ecf8e;--bad:#ff6b70;--soft:#2a2547;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14121f;--card:#1e1b30;--ink:#f1efff;--mute:#a29fc0;--line:#322e4d;
+  --accent:#8b73ff;--accent-ink:#120e2b;--good:#3ecf8e;--bad:#ff6b70;--soft:#2a2547;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.45}
+#app{max-width:620px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:28px;margin:8px 0 4px;letter-spacing:-.02em}
+h2{font-size:20px;margin:0 0 10px}
+.sub{color:var(--mute);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--mute);margin:12px 0 6px}
+input[type=text],select{width:100%;padding:12px 14px;font-size:16px;border-radius:12px;border:1px solid var(--line);
+  background:var(--bg);color:var(--ink);font-family:inherit}
+button{font-family:inherit;font-size:16px;font-weight:600;border:0;border-radius:12px;padding:13px 18px;cursor:pointer;
+  background:var(--accent);color:var(--accent-ink);width:100%;margin-top:10px}
+button.alt{background:var(--soft);color:var(--ink)}
+button.red{background:var(--bad);color:#fff}
+button.green{background:var(--good);color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.code{font-size:40px;font-weight:800;letter-spacing:.2em;text-align:center;margin:6px 0;color:var(--accent)}
+.player{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.player:last-child{border-bottom:0}
+.av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;flex:none}
+.pn{flex:1;font-weight:600;overflow-wrap:anywhere}
+.tag{font-size:12px;color:var(--mute)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line);flex:none}
+.dot.on{background:var(--good)}
+.err{color:var(--bad);margin:10px 0 0;font-size:14px}
+.score{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.score:last-child{border-bottom:0}
+.good{color:var(--good);font-weight:600}.bad{color:var(--bad)}
+.hint{font-size:13px;color:var(--mute);margin-top:12px}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;background:var(--soft);font-size:13px;color:var(--ink)}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin:4px 0 12px;font-size:18px}
+.roomsvg{width:min(100%,calc((100vh - 120px)*1.4286));height:auto;display:block;background:var(--card);border-radius:14px;margin:0 auto 14px}
+.roomsvg .wall,.roomsvg .spot,.roomsvg .desk,.roomsvg .obj{stroke:var(--ink);stroke-width:3}
+.roomsvg .spot{fill:var(--soft)}
+.roomsvg .obj{fill:var(--card)}
+.roomsvg .ant{stroke:var(--ink);stroke-width:3}
+.roomsvg .hit{fill:transparent;cursor:pointer}
+.roomsvg .item:hover .hit,.roomsvg .item.on .hit{fill:var(--soft)}
+.roomsvg .lbl{fill:var(--ink);font-size:15px;font-weight:600;pointer-events:none}
+.roomsvg .rn{fill:var(--mute);font-size:18px;font-weight:700}
+.roomsvg .av-t{fill:var(--ink);font-size:14px;font-weight:700;text-anchor:middle}
+.roomsvg .av-s{fill:var(--mute);font-size:12px;text-anchor:middle}
+.roomsvg .dots{fill:var(--ink)}
+.roomsvg .ring .obj{animation:shake .4s infinite}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.incoming{border:2px solid var(--good)}
+.rooms{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.rooms button{margin:0}
+.brow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.brow:last-of-type{border-bottom:0}
+.brow b{width:92px;flex:none}
+.brow select{flex:1}
+.roomsvg .ln{stroke:var(--ink);stroke-width:2.5}
+.roomsvg .ln2{stroke:var(--ink);stroke-width:2}
+.roomsvg #pl{pointer-events:none}
+.roomsvg.near .item .hit{stroke:var(--accent);stroke-width:2;stroke-dasharray:5 4}
+.ctrl{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.ctrl .tag{flex:1;font-size:13px}
+.dpad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px;flex:none;touch-action:none;user-select:none;-webkit-user-select:none}
+.dpad button{width:52px;height:52px;padding:0;margin:0;font-size:20px;touch-action:none}
+.dpad [data-dir=U]{grid-column:2;grid-row:1}
+.dpad [data-dir=L]{grid-column:1;grid-row:2}
+.dpad [data-dir=D]{grid-column:2;grid-row:2}
+.dpad [data-dir=R]{grid-column:3;grid-row:2}
+.roomsvg{background:#fff}
+.roomsvg .wall,.roomsvg .desk,.roomsvg .obj,.roomsvg .ant,.roomsvg .ln,.roomsvg .ln2{stroke:#000}
+.roomsvg .wall{stroke-width:4}
+.roomsvg .obj{fill:#fff}
+.roomsvg .lbl,.roomsvg .av-t{fill:#000}
+.roomsvg .av-t{paint-order:stroke;stroke:#fff;stroke-width:3px}
+.roomsvg .rn{fill:#555}
+.roomsvg .dots{fill:#000}
+.roomsvg .item:hover .hit,.roomsvg .item.on .hit{fill:#efeaff}
+.roomsvg .hs{fill:#c8102e;stroke:#000;stroke-width:2;stroke-linejoin:round}
+.roomsvg .ring .hs,.roomsvg .ring .obj{animation:shake .4s infinite}
+.roomsvg .rn{fill:#000}
+.roomsvg .item:hover .hit,.roomsvg .item.on .hit{fill:rgba(255,255,255,.35)}
+#gear{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;width:44px;height:44px;border-radius:50%;padding:0;margin:0;z-index:20;
+  font-size:22px;line-height:1;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+#setwrap,#tutwrap{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;display:none;align-items:center;justify-content:center;padding:16px}
+#setwrap.open,#tutwrap.open{display:flex}
+.sbox{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;width:100%;max-width:440px;max-height:90vh;overflow:auto}
+.shead{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.shead button{width:auto;margin:0;padding:8px 14px}
+.shead h2{margin:0}
+.srow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
+label.srow{margin:0;color:var(--ink);font-size:15px}
+.srow input[type=range]{width:52%}
+.srow select{width:auto;max-width:52%}
+.srow input[type=checkbox]{width:22px;height:22px}
+.tart svg{width:100%;height:auto;display:block;border-radius:12px;margin:12px 0;border:1px solid var(--line)}
+.tp{font-size:15px;margin:8px 0}
+.tdots{text-align:center;letter-spacing:6px;color:var(--mute);margin:10px 0 2px}
+.tnav{display:flex;gap:10px}.tnav button{margin-top:8px}
+#app.wide{max-width:1400px}
+@media (max-width:899px){.topbar{padding-right:54px}}
+.gwrap{display:block}
+@media (min-width:900px){
+  .gwrap{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<button id="gear" aria-label="Настройки" title="Настройки">⚙</button>
+<div id="setwrap"></div>
+<div id="tutwrap"></div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+(function(){
+"use strict";
+var COLORS=["#6c4cf5","#e5484d","#1fa971","#e8890c","#0e8fd8","#c2409b"];
+var ROUND_SEC=420;
+var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
+var $app=document.getElementById("app");
+
+var S={view:"start",err:"",busy:"",joined:false,note:""};
+var ST=loadST();
+function loadST(){
+  var d={music:true,vol:0.35,track:"cozy",voiceVol:1,speed:210,desk:"walnut",theme:"auto",pad:true}, o={};
+  try{o=JSON.parse(localStorage.getItem("cg_settings")||"{}")||{};}catch(e){}
+  Object.keys(d).forEach(function(k){if(o[k]!==undefined&&typeof o[k]===typeof d[k]) d[k]=o[k];});
+  return d;
+}
+function saveST(){try{localStorage.setItem("cg_settings",JSON.stringify(ST));}catch(e){}}
+var G=null, call=null;
+var room=null, myPeer=null, myName="", myColor="", roomCode="", iAmCreator=false;
+var rawStream=null, localStream=null, actx=null, inGain=null, dryGain=null, wetGain=null, jungle=null, micOn=true;
+var tickTimer=null, ringTimer=null, ringOutTimer=null;
+
+function lsGet(k){try{return localStorage.getItem(k)||"";}catch(e){return "";}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function fmt(sec){var m=Math.floor(sec/60),s=sec%60;return m+":"+(s<10?"0":"")+s;}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+/* ---------- voice changer (pitch shift, "Jungle" delay-line algorithm) ---------- */
+function Jungle(ctx){
+  var bufferTime=0.100, fadeTime=0.050, delayTime=0.100, self=this;
+  function fadeBuf(){
+    var l1=Math.round(bufferTime*ctx.sampleRate), l2=Math.round((bufferTime-2*fadeTime)*ctx.sampleRate), len=l1+l2;
+    var b=ctx.createBuffer(1,len,ctx.sampleRate), p=b.getChannelData(0);
+    var fl=fadeTime*ctx.sampleRate, i1=fl, i2=l1-fl, i;
+    for(i=0;i<l1;i++){p[i]=i<i1?Math.sqrt(i/fl):(i>=i2?Math.sqrt(1-(i-i2)/fl):1);}
+    for(i=l1;i<len;i++) p[i]=0;
+    return b;
+  }
+  function delayBuf(up){
+    var l1=Math.round(bufferTime*ctx.sampleRate), l2=Math.round((bufferTime-2*fadeTime)*ctx.sampleRate), len=l1+l2;
+    var b=ctx.createBuffer(1,len,ctx.sampleRate), p=b.getChannelData(0), i;
+    for(i=0;i<l1;i++) p[i]=up?(l1-i)/len:i/l1;
+    for(i=l1;i<len;i++) p[i]=0;
+    return b;
+  }
+  function src(buf){var s=ctx.createBufferSource();s.buffer=buf;s.loop=true;return s;}
+  this.input=ctx.createGain();this.output=ctx.createGain();
+  var down=delayBuf(false), up=delayBuf(true);
+  var m1=src(down),m2=src(down),m3=src(up),m4=src(up);
+  var g1=ctx.createGain(),g2=ctx.createGain(),g3=ctx.createGain(),g4=ctx.createGain();
+  g3.gain.value=0;g4.gain.value=0;
+  m1.connect(g1);m2.connect(g2);m3.connect(g3);m4.connect(g4);
+  var mg1=ctx.createGain(),mg2=ctx.createGain();
+  g1.connect(mg1);g2.connect(mg2);g3.connect(mg1);g4.connect(mg2);
+  var d1=ctx.createDelay(),d2=ctx.createDelay();
+  mg1.connect(d1.delayTime);mg2.connect(d2.delayTime);
+  var f1=src(fadeBuf()),f2=src(fadeBuf());
+  var x1=ctx.createGain(),x2=ctx.createGain();x1.gain.value=0;x2.gain.value=0;
+  f1.connect(x1.gain);f2.connect(x2.gain);
+  this.input.connect(d1);this.input.connect(d2);
+  d1.connect(x1);d2.connect(x2);x1.connect(this.output);x2.connect(this.output);
+  var t=ctx.currentTime+0.05, t2=t+bufferTime-fadeTime;
+  m1.start(t);m2.start(t2);m3.start(t);m4.start(t2);f1.start(t);f2.start(t2);
+  function setDelay(d){mg1.gain.setTargetAtTime(0.5*d,0,0.010);mg2.gain.setTargetAtTime(0.5*d,0,0.010);}
+  this.setPitchOffset=function(mult){
+    if(mult>0){g1.gain.value=0;g2.gain.value=0;g3.gain.value=1;g4.gain.value=1;}
+    else{g1.gain.value=1;g2.gain.value=1;g3.gain.value=0;g4.gain.value=0;}
+    setDelay(delayTime*Math.abs(mult));
+  };
+  this.setPitchOffset(0);
+}
+
+/* ---------- people ---------- */
+function getPlayers(){
+  if(!room) return [];
+  var seen={}, out=[];
+  room.peers().forEach(function(p){
+    if(p.kind!=="viewer"||!p.presence||!p.presence.name) return;
+    if(seen[p.peer]) return; seen[p.peer]=1;
+    out.push({peer:p.peer,name:String(p.presence.name).slice(0,16),color:String(p.presence.color||COLORS[0]),
+      host:!!p.presence.host,phase:p.presence.phase});
+  });
+  out.sort(function(a,b){return a.peer<b.peer?-1:1;});
+  return out;
+}
+function hostPeer(){var h=getPlayers().filter(function(p){return p.host;})[0];return h?h.peer:null;}
+function isHost(){return myPeer&&hostPeer()===myPeer;}
+function isAlive(id){return getPlayers().some(function(p){return p.peer===id;});}
+function alivePlayers(){return G?G.players.filter(function(p){return isAlive(p.peer);}):[];}
+function nameOf(id){
+  var p=(G&&G.players.filter(function(x){return x.peer===id;})[0])||getPlayers().filter(function(x){return x.peer===id;})[0];
+  return p?p.name:"Игрок";
+}
+
+/* ---------- network: PeerJS mesh ---------- */
+var peerObj=null, conns={}, pending={}, remotePres={}, myPres={}, audios={}, handlers={}, peerCbs=[], hostId="";
+function bcast(obj){Object.keys(conns).forEach(function(id){if(conns[id].open){try{conns[id].send(obj);}catch(e){}}});}
+function notifyPeers(){peerCbs.forEach(function(f){try{f();}catch(e){console.error(e);}});}
+function deliver(topic,msg){(handlers[topic]||[]).forEach(function(f){try{f(msg);}catch(e){console.error(e);}});}
+var roomShim={
+  peers:function(){
+    var a=[{peer:myPeer,kind:"viewer",presence:myPres,isMe:true}];
+    Object.keys(conns).forEach(function(id){
+      if(conns[id].open&&remotePres[id]) a.push({peer:id,kind:"viewer",presence:remotePres[id],isMe:false});
+    });
+    return a;
+  },
+  emit:function(topic,data){
+    bcast({t:"ev",topic:topic,data:data});
+    setTimeout(function(){deliver(topic,{topic:topic,data:data,peer:myPeer,isMe:true});},0);
+    return Promise.resolve();
+  },
+  on:function(topic,fn){(handlers[topic]=handlers[topic]||[]).push(fn);},
+  presence:function(patch){
+    var np={};Object.keys(myPres).forEach(function(k){np[k]=myPres[k];});
+    Object.keys(patch).forEach(function(k){np[k]=patch[k];});
+    myPres=np;bcast({t:"pres",pres:myPres});notifyPeers();return Promise.resolve();
+  },
+  onPeers:function(fn){peerCbs.push(fn);}
+};
+function setupConn(conn){
+  var id=conn.peer;
+  conn.on("open",function(){
+    delete pending[id];
+    if(conns[id]&&conns[id]!==conn&&conns[id].open){try{conn.close();}catch(e){}return;}
+    if(iAmCreator&&conn.__in){
+      if(myPres.phase!=="lobby"||Object.keys(conns).length+1>=6){
+        try{conn.send({t:"deny",why:myPres.phase!=="lobby"?"В этом лобби игра уже идёт.":"В лобби уже 6 игроков."});}catch(e){}
+        setTimeout(function(){try{conn.close();}catch(e){}},400);
+        return;
+      }
+    }
+    conns[id]=conn;
+    conn.send({t:"hello",pres:myPres});
+    if(iAmCreator) bcast({t:"peers",ids:Object.keys(conns)});
+    if(localStream&&myPeer>id) callPeer(id);
+    notifyPeers();
+  });
+  conn.on("data",function(d){onNet(id,d);});
+  conn.on("close",function(){gone(id,conn);});
+  conn.on("error",function(){gone(id,conn);});
+}
+function gone(id,conn){
+  delete pending[id];
+  if(conns[id]===conn){
+    delete conns[id];delete remotePres[id];dropAudio(id);
+    if(iAmCreator) bcast({t:"peers",ids:Object.keys(conns)});
+    notifyPeers();
+  }
+}
+function connectTo(id){
+  pending[id]=1;
+  setupConn(peerObj.connect(id,{serialization:"json",reliable:true}));
+}
+function onNet(id,d){
+  if(!d||typeof d!=="object") return;
+  if(d.t==="deny"){fail(String(d.why||"Не удалось войти в лобби."));return;}
+  if(d.t==="hello"||d.t==="pres"){
+    if(d.pres&&typeof d.pres==="object"){
+      remotePres[id]=d.pres;
+      if(S.view==="wait"&&id===hostId){S.view="lobby";S.joined=true;}
+      notifyPeers();
+    }
+  }else if(d.t==="peers"&&Array.isArray(d.ids)){
+    if(id!==hostId) return;
+    d.ids.forEach(function(x){
+      if(typeof x==="string"&&x!==myPeer&&!conns[x]&&!pending[x]&&myPeer>x) connectTo(x);
+    });
+  }else if(d.t==="ev"&&typeof d.topic==="string"){
+    deliver(d.topic,{topic:d.topic,data:d.data,peer:id,isMe:false});
+  }
+}
+function callPeer(id){hookCall(id,peerObj.call(id,localStream));}
+function hookCall(id,call){
+  call.on("stream",function(st){
+    var a=audios[id];
+    if(!a){a=document.createElement("audio");a.autoplay=true;a.playsInline=true;document.body.appendChild(a);audios[id]=a;}
+    a.srcObject=st;var pr=a.play();if(pr&&pr.catch) pr.catch(function(){});
+    applyAudio();
+  });
+}
+function dropAudio(id){var a=audios[id];if(a){a.srcObject=null;a.remove();delete audios[id];}}
+function dcOpen(id){return !!(conns[id]&&conns[id].open);}
+
+/* ---------- audio routing ---------- */
+function applyAudio(){
+  var game=!!G&&S.view==="game", active=!!call&&call.state==="active";
+  if(inGain) inGain.gain.value=(micOn&&(!game||active))?1:0;
+  Object.keys(audios).forEach(function(id){audios[id].muted=game&&!(active&&call.with===id);audios[id].volume=ST.voiceVol;});
+  var p=(game&&G.useFx&&G.pitch[myPeer])||0;
+  if(dryGain){dryGain.gain.value=p?0:1;wetGain.gain.value=p?1:0;if(p) jungle.setPitchOffset(p);}
+  musicApply();
+}
+function beep(freq,dur){
+  if(!actx) return;
+  var o=actx.createOscillator(),g=actx.createGain();
+  o.frequency.value=freq;g.gain.value=0.08;o.connect(g);g.connect(actx.destination);
+  o.start();o.stop(actx.currentTime+dur);
+}
+function stopRing(){clearInterval(ringTimer);ringTimer=null;clearTimeout(ringOutTimer);ringOutTimer=null;}
+function startRing(){
+  stopRing();
+  var f=call&&call.state==="in"?880:440;
+  beep(f,0.4);ringTimer=setInterval(function(){beep(f,0.4);},1600);
+}
+
+/* ---------- entering a lobby ---------- */
+function genCode(){var a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",s="";for(var i=0;i<4;i++)s+=a[Math.floor(Math.random()*a.length)];return s;}
+function fail(msg){
+  stopRing();clearInterval(tickTimer);
+  if(music.timer){clearInterval(music.timer);music.timer=null;} music.gain=null;
+  if(peerObj){try{peerObj.destroy();}catch(e){} peerObj=null;}
+  Object.keys(audios).forEach(dropAudio);
+  conns={};pending={};remotePres={};myPres={};handlers={};peerCbs=[];
+  if(rawStream){rawStream.getTracks().forEach(function(t){t.stop();});rawStream=null;}
+  if(actx){try{actx.close();}catch(e){} actx=null;}
+  localStream=null;inGain=dryGain=wetGain=jungle=null;
+  room=null;myPeer=null;G=null;call=null;S.joined=false;S.view="start";S.err=msg;S.note="";render();
+}
+async function enter(create){
+  var name=document.getElementById("nm").value.trim().slice(0,16);
+  var code=create?genCode():document.getElementById("cd").value.trim().toUpperCase();
+  if(!name){S.err="Введите имя";render();return;}
+  if(!create&&!/^[A-Z0-9]{4}$/.test(code)){S.err="Код состоит из 4 символов";render();return;}
+  lsSet("cg_name",name);
+  myName=name;myColor=COLORS[Math.floor(Math.random()*COLORS.length)];roomCode=code;iAmCreator=create;
+  hostId="cgolos-"+code.toLowerCase();
+  S.err="";S.view="wait";S.busy="Подключаемся…";render();
+  if(typeof Peer==="undefined") return fail("Не загрузился модуль связи (PeerJS). Проверьте интернет и обновите страницу.");
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext;
+    actx=new AC();if(actx.state==="suspended") actx.resume();
+    rawStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+    var src=actx.createMediaStreamSource(rawStream);
+    inGain=actx.createGain();dryGain=actx.createGain();wetGain=actx.createGain();wetGain.gain.value=0;
+    jungle=new Jungle(actx);
+    var dest=actx.createMediaStreamDestination();
+    src.connect(inGain);inGain.connect(dryGain);dryGain.connect(dest);
+    inGain.connect(jungle.input);jungle.output.connect(wetGain);wetGain.connect(dest);
+    localStream=dest.stream;
+    musicBoot();
+  }catch(e){
+    return fail("Нет доступа к микрофону. Игре он нужен для голосового чата. Разрешите микрофон в браузере (страница должна быть открыта по https).");
+  }
+  room=roomShim;
+  handlers={};peerCbs=[];
+  room.on("ctl",onCtl);
+  room.on("guess",onGuess);
+  room.on("call",onCall);
+  room.onPeers(onPeers);
+  peerObj=new Peer(create?hostId:undefined,{debug:0});
+  peerObj.on("error",function(e){
+    var t=e&&e.type;
+    if(S.view!=="wait") return;
+    if(t==="unavailable-id") fail("Этот код уже занят, нажмите «Создать» ещё раз.");
+    else if(t==="peer-unavailable") fail("Лобби с таким кодом не найдено. Проверьте код.");
+    else fail("Ошибка связи ("+(t||"неизвестно")+"). Попробуйте ещё раз.");
+  });
+  peerObj.on("connection",function(c){c.__in=true;setupConn(c);});
+  peerObj.on("call",function(c){c.answer(localStream);hookCall(c.peer,c);});
+  peerObj.on("open",function(id){
+    myPeer=id;
+    myPres={name:myName,color:myColor,host:create,phase:"lobby"};
+    if(create){S.joined=true;S.view="lobby";render();}
+    else{
+      pending[hostId]=1;
+      setupConn(peerObj.connect(hostId,{serialization:"json",reliable:true}));
+      setTimeout(function(){if(S.view==="wait") fail("Не удалось соединиться с лобби. Проверьте код и интернет.");},12000);
+    }
+  });
+}
+function onPeers(){
+  if(S.joined&&S.view!=="start"&&S.view!=="wait"&&!hostPeer()) return fail("Хозяин вышел, лобби закрыто.");
+  if(call&&!isAlive(call.with)){call=null;stopRing();S.note="Собеседник отключился";}
+  checkProgress();applyAudio();render();
+}
+
+/* ---------- game flow ---------- */
+function newGame(players,rooms,pitch,useFx,secs){
+  return {players:players,rooms:rooms,pitch:pitch,useFx:useFx,endAt:Date.now()+secs*1000,
+    submitted:false,notes:{},panel:"none",guesses:{},scores:{},right:{}};
+}
+function myRoom(){return G.rooms[myPeer];}
+function peerOfRoom(n){var r=null;Object.keys(G.rooms).forEach(function(id){if(G.rooms[id]===n) r=id;});return r;}
+function otherRooms(){
+  return G.players.filter(function(p){return p.peer!==myPeer;}).map(function(p){return G.rooms[p.peer];}).sort(function(a,b){return a-b;});
+}
+function onCtl(m){
+  var d=m.data||{}, t=d.t;
+  if(m.peer!==hostPeer()) return;
+  if(t==="start"){
+    if(!Array.isArray(d.players)||!d.rooms||!d.pitch) return;
+    var known=getPlayers();
+    var pl=d.players.map(function(id){return known.filter(function(p){return p.peer===id;})[0];}).filter(Boolean);
+    if(pl.length<2||!d.rooms[myPeer]) return;
+    var rooms={},pitch={};
+    pl.forEach(function(p){
+      rooms[p.peer]=Number(d.rooms[p.peer])||0;
+      var x=Number(d.pitch[p.peer])||0;pitch[p.peer]=Math.max(-0.8,Math.min(0.8,x));
+    });
+    G=newGame(pl,rooms,pitch,!!d.fx,Math.min(900,Math.max(60,Number(d.secs)||ROUND_SEC)));
+    call=null;stopRing();S.note="";S.view="game";resetMove();startTick();startLoop();
+  }else if(t==="again"){
+    G=null;call=null;stopRing();clearInterval(tickTimer);S.note="";S.view="lobby";
+    if(isHost()) room.presence({phase:"lobby"});
+  }
+  applyAudio();checkProgress();render();
+}
+function startTick(){
+  clearInterval(tickTimer);
+  tickTimer=setInterval(function(){
+    if(!G||S.view!=="game") return;
+    var left=Math.max(0,Math.round((G.endAt-Date.now())/1000));
+    var el=document.getElementById("tm");if(el) el.textContent=fmt(left);
+    if(left<=0&&!G.submitted) submitGuess(true);
+  },1000);
+}
+function submitGuess(auto){
+  if(!G||G.submitted) return;
+  var map={},used={},miss=false,dup=false;
+  otherRooms().forEach(function(n){
+    var v=G.notes[n];
+    if(!v){miss=true;return;}
+    if(used[v]){dup=true;if(auto) return;}
+    used[v]=1;map[n]=v;
+  });
+  if(!auto){
+    if(miss){S.note="Заполните блокнот для всех комнат.";render();return;}
+    if(dup){S.note="Один игрок выбран дважды.";render();return;}
+  }
+  G.submitted=true;S.note="";
+  room.emit("guess",{map:map});
+  render();
+}
+function onGuess(m){
+  var d=m.data||{};
+  if(!G||!d.map||typeof d.map!=="object") return;
+  var clean={};Object.keys(d.map).forEach(function(k){clean[k]=String(d.map[k]);});
+  G.guesses[m.peer]=clean;
+  checkProgress();render();
+}
+function checkProgress(){
+  if(!G||S.view!=="game") return;
+  var alive=alivePlayers();
+  if(!alive.length||!alive.every(function(p){return G.guesses[p.peer];})) return;
+  G.scores={};G.right={};
+  G.players.forEach(function(p){G.scores[p.peer]=0;});
+  Object.keys(G.guesses).forEach(function(pid){
+    Object.keys(G.guesses[pid]).forEach(function(n){
+      if(G.rooms[G.guesses[pid][n]]===Number(n)){
+        G.scores[pid]=(G.scores[pid]||0)+1;
+        (G.right[n]=G.right[n]||[]).push(nameOf(pid));
+      }
+    });
+  });
+  if(call){var w=call.with;room.emit("call",{t:"end",to:w});call=null;stopRing();}
+  S.view="reveal";applyAudio();
+}
+
+/* ---------- phone ---------- */
+function startCall(n){
+  if(!G||call||S.view!=="game") return;
+  var pid=peerOfRoom(n); if(!pid||!isAlive(pid)) return;
+  call={with:pid,state:"out",room:n};S.note="";
+  room.emit("call",{t:"ring",to:pid,fromRoom:myRoom()});
+  startRing();
+  ringOutTimer=setTimeout(function(){
+    if(call&&call.state==="out"){
+      room.emit("call",{t:"end",to:call.with});call=null;stopRing();S.note="Никто не ответил.";applyAudio();render();
+    }
+  },25000);
+  render();
+}
+function endCall(notify,note){
+  if(call&&notify) room.emit("call",{t:"end",to:call.with});
+  call=null;stopRing();if(note!==undefined) S.note=note;
+  applyAudio();render();
+}
+function answerCall(){
+  if(!call||call.state!=="in") return;
+  call.state="active";stopRing();
+  room.emit("call",{t:"accept",to:call.with});
+  G.panel="phone";applyAudio();render();
+}
+function onCall(m){
+  var d=m.data||{};
+  if(!G||m.isMe||d.to!==myPeer) return;
+  if(d.t==="ring"){
+    if(S.view!=="game"||!isAlive(m.peer)){room.emit("call",{t:"busy",to:m.peer});return;}
+    if(call){
+      if(call.with===m.peer&&call.state==="out"){
+        call.state="active";stopRing();room.emit("call",{t:"accept",to:m.peer});
+      }else{room.emit("call",{t:"busy",to:m.peer});return;}
+    }else{
+      call={with:m.peer,state:"in",room:Number(d.fromRoom)||0};startRing();
+    }
+  }else if(d.t==="accept"){
+    if(call&&call.with===m.peer&&call.state==="out"){call.state="active";stopRing();}
+  }else if(d.t==="end"){
+    if(call&&call.with===m.peer){call=null;stopRing();S.note="Звонок завершён.";}
+  }else if(d.t==="busy"){
+    if(call&&call.with===m.peer&&call.state==="out"){call=null;stopRing();S.note="Занято, попробуйте позже.";}
+  }
+  applyAudio();render();
+}
+
+/* ---------- movement ---------- */
+var WORLD={w:1000,h:700}, VW=600, VH=420;
+var P={x:500,y:350,a:0}, keys={}, pad={}, raf=0, lastT=0, lastNear=null;
+var DESK={x:370,y:590,w:260,h:95}, RAD=28;
+var OBST=[
+  {x:370,y:590,w:260,h:95},
+  {x:300,y:15,w:400,h:46},
+  {x:880,y:250,w:105,h:200},
+  {c:1,x:62,y:72,r:30},{c:1,x:938,y:628,r:30}
+];
+function resetMove(){P={x:500,y:350,a:0};keys={};pad={};lastNear=null;}
+function hits(x,y){
+  if(x<RAD+16||x>WORLD.w-16-RAD||y<RAD+16||y>WORLD.h-16-RAD) return true;
+  for(var i=0;i<OBST.length;i++){
+    var o=OBST[i];
+    if(o.c){if(Math.hypot(x-o.x,y-o.y)<RAD+o.r) return true;}
+    else{
+      var cx=Math.max(o.x,Math.min(x,o.x+o.w)), cy=Math.max(o.y,Math.min(y,o.y+o.h));
+      if(Math.hypot(x-cx,y-cy)<RAD) return true;
+    }
+  }
+  return false;
+}
+function camBox(){
+  var cx=Math.max(0,Math.min(WORLD.w-VW,P.x-VW/2)), cy=Math.max(0,Math.min(WORLD.h-VH,P.y-VH/2));
+  return cx.toFixed(1)+" "+cy.toFixed(1)+" "+VW+" "+VH;
+}
+function nearDesk(){
+  var cx=Math.max(DESK.x,Math.min(P.x,DESK.x+DESK.w)), cy=Math.max(DESK.y,Math.min(P.y,DESK.y+DESK.h));
+  return Math.hypot(P.x-cx,P.y-cy)<RAD+34;
+}
+function nearText(n){return n?"Вы у стола: нажмите на телефон или блокнот.":"Стол с телефоном и блокнотом — у нижней стены.";}
+function updateChar(){
+  var pl=document.getElementById("pl"); if(!pl) return;
+  pl.setAttribute("transform","translate("+P.x.toFixed(1)+" "+P.y.toFixed(1)+")");
+  var pr=document.getElementById("pr"); if(pr) pr.setAttribute("transform","rotate("+P.a.toFixed(1)+")");
+  var sv0=document.getElementById("rsvg"); if(sv0) sv0.setAttribute("viewBox",camBox());
+  var n=nearDesk();
+  if(n!==lastNear){
+    lastNear=n;
+    var sv=document.getElementById("rsvg"); if(sv) sv.classList.toggle("near",n);
+    var h=document.getElementById("nearhint"); if(h) h.innerHTML=esc(nearText(n))+"<br>WASD или стрелки — ходить, E — взять или убрать телефон и блокнот.";
+  }
+}
+function loop(t){
+  if(!G||S.view!=="game"){raf=0;return;}
+  raf=requestAnimationFrame(loop);
+  var dt=Math.min(0.05,(t-lastT)/1000||0.016);lastT=t;
+  var dx=((keys.R||pad.R)?1:0)-((keys.L||pad.L)?1:0), dy=((keys.D||pad.D)?1:0)-((keys.U||pad.U)?1:0);
+  if(dx||dy){
+    var l=Math.hypot(dx,dy);dx/=l;dy/=l;
+    var nx=P.x+dx*ST.speed*dt, ny=P.y+dy*ST.speed*dt;
+    if(!hits(nx,P.y)) P.x=nx;
+    if(!hits(P.x,ny)) P.y=ny;
+    P.a=Math.atan2(-dx,dy)*180/Math.PI;
+    updateChar();
+  }
+}
+function startLoop(){if(!raf){lastT=performance.now();raf=requestAnimationFrame(loop);}}
+
+/* ---------- render ---------- */
+function av(p){return '<div class="av" style="background:'+esc(p.color)+'">'+esc((p.name||"?").charAt(0).toUpperCase())+'</div>';}
+function head(){return '<h1>🎙️ Чей голос?</h1>';}
+function renderStart(){
+  return head()+'<p class="sub">Игра для 3–6 друзей: звоним в соседние комнаты и угадываем, кто там сидит.</p>'+
+  '<div class="card"><label for="nm">Ваше имя</label><input id="nm" type="text" maxlength="16" value="'+esc(lsGet("cg_name"))+'" autocomplete="off">'+
+  '<button data-act="create">Создать лобби</button>'+
+  '<label for="cd" style="margin-top:20px">Или войдите по коду</label>'+
+  '<div class="row"><input id="cd" type="text" maxlength="4" placeholder="ABCD" style="text-transform:uppercase" autocomplete="off">'+
+  '<button class="alt" data-act="join" style="margin-top:0">Войти</button></div>'+
+  (S.err?'<p class="err">'+esc(S.err)+'</p>':'')+'</div>'+
+  '<button class="alt" data-act="tutorial">📖 Как играть (обучение)</button>'+
+  '<p class="hint">Играть можно только в браузере с микрофоном. Войти в лобби можно без регистрации: достаточно открыть эту страницу и ввести код.</p>';
+}
+function renderLobby(){
+  var ps=getPlayers(), host=isHost(), ok=ps.length>=3&&ps.length<=6;
+  var linked=ps.every(function(p){return p.peer===myPeer||dcOpen(p.peer);});
+  var h=head()+'<div class="card"><div class="tag" style="text-align:center">Код лобби</div><div class="code">'+esc(roomCode)+'</div>'+
+  '<p class="hint" style="text-align:center;margin:0">Друзья открывают эту страницу и вводят код</p></div>';
+  h+='<div class="card"><h2>Игроки ('+ps.length+'/6)</h2>';
+  ps.forEach(function(p){
+    var me=p.peer===myPeer, on=me||dcOpen(p.peer);
+    h+='<div class="player">'+av(p)+'<div class="pn">'+esc(p.name)+(me?' <span class="tag">(вы)</span>':'')+
+    (p.host?' <span class="pill">хозяин</span>':'')+'</div><span class="dot'+(on?' on':'')+'" title="'+(on?'на связи':'соединяемся')+'"></span></div>';
+  });
+  h+='</div>';
+  h+='<div class="card"><h2>Голосовой чат</h2><p class="hint" style="margin:0 0 4px">Пока вы в лобби, можно разговаривать. В игре говорить можно только по телефону.</p>'+
+  '<button class="alt" data-act="mic">'+(micOn?'🎤 Микрофон включён':'🔇 Микрофон выключен')+'</button></div>';
+  if(host){
+    h+='<div class="card"><label style="margin:0"><input type="checkbox" id="fxbox" checked> Менять высоту голоса при прослушивании (сложнее)</label>'+
+    '<button data-act="start"'+((ok&&linked)?'':' disabled')+'>Начать игру</button>'+
+    (!ok?'<p class="hint">Нужно от 3 до 6 игроков.</p>':(!linked?'<p class="hint">Ждём, пока все соединятся (зелёные точки).</p>':''))+'</div>';
+  }else{
+    h+='<div class="card tag" style="text-align:center">Ждём, пока хозяин начнёт игру…</div>';
+  }
+  return h+'<button class="alt" data-act="tutorial">📖 Как играть</button><button class="alt" data-act="leave">Выйти</button>';
+}
+var HS=[[123,62],[203,62],[203,146],[139,146],[137,279],[203,282],[166,327],[108,322],[84,263],[87,118]];
+function hsPoly(cx,cy,k,mirror){
+  return HS.map(function(p){
+    var x=(p[0]-143.5)*k*(mirror?-1:1)+cx, y=(p[1]-194.5)*k+cy;
+    return x.toFixed(1)+","+y.toFixed(1);
+  }).join(" ");
+}
+function hsRot(cx,cy,k){
+  return HS.map(function(p){return (-(p[1]-194.5)*k+cx).toFixed(1)+","+((p[0]-143.5)*k+cy).toFixed(1);}).join(" ");
+}
+function pencilSvg(){
+  var l=' stroke="#000" stroke-width="1.2"';
+  return '<rect x="0" y="-2.6" width="5" height="5.2" fill="#e8909a"'+l+'/><rect x="5" y="-2.6" width="3" height="5.2" fill="#b8b8b8"'+l+'/>'+
+    '<rect x="8" y="-2.6" width="19" height="5.2" fill="#f2c230"'+l+'/><polygon points="27,-2.6 34,0 27,2.6" fill="#e9c89b"'+l+' stroke-linejoin="round"/>'+
+    '<polygon points="31.5,-0.9 34,0 31.5,0.9" fill="#222"/>';
+}
+function sheet(x,y,w,h,n,sw){
+  var L=[0.86,0.7,0.55,0.4,0.78,0.82,0.65,0.8], o='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="2" class="obj"/>';
+  for(var i=0;i<n;i++){
+    var ly=y+(h/(n+1))*(i+1), lw=w*L[i%L.length]*0.8, lx=x+(w-lw)/2;
+    o+='<line x1="'+lx.toFixed(1)+'" y1="'+ly.toFixed(1)+'" x2="'+(lx+lw).toFixed(1)+'" y2="'+ly.toFixed(1)+'" stroke="#000" stroke-width="'+sw+'"/>';
+  }
+  return o;
+}
+var DESKS={
+  walnut:{top:"#5b3a24",grain:"#7d5536",fill:"#fff",halo:true,name:"Тёмный орех"},
+  oak:{top:"#d6b07a",grain:"#a8814f",fill:"#000",halo:false,name:"Светлое дерево"},
+  white:{top:"#ecebe6",grain:"#c9c6bc",fill:"#000",halo:false,name:"Белый"},
+  green:{top:"#3f6b52",grain:"#5b8a70",fill:"#fff",halo:true,name:"Зелёный"}
+};
+function furniture(){
+  var o="", pal=["#b5483a","#3f6fa8","#d8b24a","#4d8a5c","#8a5aa8","#e8e0d0"], i;
+  // rug
+  o+='<rect x="340" y="250" width="320" height="210" rx="12" fill="#9c4a3c" stroke="#000" stroke-width="2.5"/>'+
+     '<rect x="352" y="262" width="296" height="186" rx="6" fill="none" stroke="#e9d9b0" stroke-width="3"/>'+
+     '<ellipse cx="500" cy="355" rx="78" ry="46" fill="none" stroke="#e9d9b0" stroke-width="2.5"/>';
+  // bookshelf
+  o+='<rect x="300" y="15" width="400" height="46" fill="#7a4e2b" stroke="#000" stroke-width="3"/>';
+  for(i=0;i<27;i++){var h=[30,26,32,28][i%4];o+='<rect x="'+(306+i*14.4).toFixed(1)+'" y="'+(56-h)+'" width="11" height="'+h+'" fill="'+pal[i%6]+'" stroke="#000" stroke-width="1.2"/>';}
+  // sofa
+  o+='<rect x="880" y="250" width="105" height="200" rx="10" fill="#6f8fb0" stroke="#000" stroke-width="3"/>'+
+     '<rect x="952" y="250" width="33" height="200" rx="8" fill="#587797" stroke="#000" stroke-width="2.5"/>'+
+     '<rect x="880" y="250" width="72" height="22" rx="8" fill="#587797" stroke="#000" stroke-width="2.5"/>'+
+     '<rect x="880" y="428" width="72" height="22" rx="8" fill="#587797" stroke="#000" stroke-width="2.5"/>'+
+     '<rect x="886" y="276" width="62" height="72" rx="6" fill="#7fa0c4" stroke="#000" stroke-width="2"/>'+
+     '<rect x="886" y="352" width="62" height="72" rx="6" fill="#7fa0c4" stroke="#000" stroke-width="2"/>';
+  // plants
+  [[62,72],[938,628]].forEach(function(p){
+    o+='<g transform="translate('+p[0]+' '+p[1]+')">';
+    for(var a=0;a<6;a++) o+='<ellipse cx="0" cy="-17" rx="7" ry="16" transform="rotate('+(a*60)+')" fill="#3d8b4a" stroke="#000" stroke-width="2"/>';
+    o+='<circle r="13" fill="#9a5b2e" stroke="#000" stroke-width="2.5"/></g>';
+  });
+  return o;
+}
+function roomSvg(){
+  var ringing=!!call&&call.state==="in";
+  var GRAY="#9a9a9a";
+  var dk=DESKS[ST.desk]||DESKS.walnut;
+  var lblStyle='fill:'+dk.fill+';'+(dk.halo?'stroke:#000;stroke-width:3px;paint-order:stroke;':'');
+  var heldPhone=G.panel==="phone", heldBook=G.panel==="book";
+  function arm(sx,sy,ex,ey){
+    var c=' x1="'+sx+'" y1="'+sy+'" x2="'+ex+'" y2="'+ey+'" stroke-linecap="round"';
+    return '<line'+c+' stroke="#000" stroke-width="11"/><line'+c+' stroke="'+GRAY+'" stroke-width="6.5"/>';
+  }
+  function hand(x,y){return '<circle cx="'+x+'" cy="'+y+'" r="5.5" fill="#fff" class="ln"/>';}
+  var arms,item="",hands;
+  if(heldPhone){
+    arms=arm(26,12,38,-2)+arm(-33,6,-37,16);
+    item='<polygon points="'+hsPoly(31,-3,0.17,true)+'" class="hs"/>';
+    hands=hand(38,-2)+hand(-37,16);
+  }else if(heldBook){
+    arms=arm(-24,10,-26,46)+arm(24,10,25,45);
+    item=sheet(-24,30,28,25,4,1.2)+'<g transform="translate(31 46) rotate(188) scale(1.25)">'+pencilSvg()+'</g>';
+    hands=hand(-26,46)+hand(26,45);
+  }else{
+    arms=arm(-33,6,-37,16)+arm(33,6,37,16);
+    hands=hand(-37,16)+hand(37,16);
+  }
+  var btns="", RED="#c8102e";
+  for(var bi=0;bi<10;bi++){var an=(-90+bi*36)*Math.PI/180;btns+='<circle cx="'+(70+14.5*Math.cos(an)).toFixed(1)+'" cy="'+(58+14.5*Math.sin(an)).toFixed(1)+'" r="3" fill="#111" stroke="#888" stroke-width=".8"/>';}
+  var phoneBase='<ellipse cx="70" cy="50" rx="44" ry="34" fill="'+RED+'" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="70" cy="47" rx="36" ry="26" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2"/>'+
+    '<circle cx="70" cy="58" r="20" fill="#dcdcdc" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="70" cy="58" r="9" fill="#1b1b1b" stroke="#000" stroke-width="1.5"/><circle cx="70" cy="58" r="6" fill="none" stroke="#d4b45a" stroke-width="1"/>'+btns+
+    '<rect x="52" y="17" width="6" height="10" rx="2" fill="#333" stroke="#000" stroke-width="1.5"/><rect x="82" y="17" width="6" height="10" rx="2" fill="#333" stroke="#000" stroke-width="1.5"/>';
+  var pat='<pattern id="wood" width="120" height="60" patternUnits="userSpaceOnUse">'+
+    '<rect width="120" height="20" fill="#b98a5a"/><rect y="20" width="120" height="20" fill="#a97b4d"/><rect y="40" width="120" height="20" fill="#c19564"/>'+
+    '<g stroke="#7a5530" stroke-width="1" fill="none"><line x1="0" y1="20" x2="120" y2="20"/><line x1="0" y1="40" x2="120" y2="40"/><line x1="0" y1="0" x2="120" y2="0"/>'+
+    '<line x1="70" y1="0" x2="70" y2="20"/><line x1="30" y1="20" x2="30" y2="40"/><line x1="95" y1="40" x2="95" y2="60"/></g>'+
+    '<g stroke="#8d6238" stroke-width=".7" fill="none" opacity=".5"><path d="M4 6 Q30 3 58 7 T108 6"/><path d="M76 13 Q95 11 116 14"/>'+
+    '<path d="M6 27 Q28 24 52 28"/><path d="M38 33 Q70 31 98 34"/><path d="M8 47 Q40 44 72 48"/><path d="M100 53 Q110 51 118 54"/></g></pattern>';
+  return '<svg id="rsvg" viewBox="'+camBox()+'" class="roomsvg'+(nearDesk()?' near':'')+'" role="img" aria-label="Ваша комната">'+
+  '<defs>'+pat+'</defs>'+
+  '<rect x="3" y="3" width="994" height="694" rx="8" class="wall" fill="#d9c9a8"/>'+
+  '<rect x="15" y="15" width="970" height="670" fill="url(#wood)" stroke="#000" stroke-width="2.5"/>'+
+  furniture()+
+  '<g transform="translate('+DESK.x+' '+DESK.y+')">'+
+  '<rect x="0" y="0" width="'+DESK.w+'" height="'+DESK.h+'" fill="'+dk.top+'" class="desk"/>'+
+  '<g stroke="'+dk.grain+'" stroke-width="1" opacity=".7" fill="none"><path d="M6 12 Q130 8 254 13"/><path d="M6 46 Q130 42 254 47"/><path d="M6 80 Q130 77 254 81"/></g>'+
+  '<g class="item'+(heldPhone?' on':'')+(ringing?' ring':'')+'" data-open="phone">'+
+    '<rect x="6" y="4" width="128" height="87" class="hit"/>'+phoneBase+
+    (heldPhone?'':'<polygon points="'+hsRot(70,27,0.2)+'" class="hs"/>')+
+    '<text x="70" y="90" class="lbl" style="'+lblStyle+'font-size:12px;text-anchor:middle">📞 Телефон'+(heldPhone?' ✓':'')+'</text></g>'+
+  '<g class="item'+(heldBook?' on':'')+'" data-open="book">'+
+    '<rect x="140" y="4" width="116" height="87" class="hit"/>'+
+    (heldBook?'':sheet(150,16,50,60,7,1.2)+'<g transform="translate(224 76) rotate(-90) scale(1.6)">'+pencilSvg()+'</g>')+
+    '<text x="198" y="90" class="lbl" style="'+lblStyle+'font-size:12px;text-anchor:middle">📓 Блокнот'+(heldBook?' ✓':'')+'</text></g>'+
+  '</g>'+
+  '<g id="pl" transform="translate('+P.x.toFixed(1)+' '+P.y.toFixed(1)+')">'+
+    '<g id="pr" transform="rotate('+P.a.toFixed(1)+')">'+arms+
+      '<ellipse cx="0" cy="0" rx="40" ry="27" fill="'+GRAY+'" class="ln"/>'+
+      '<ellipse cx="0" cy="-3" rx="22" ry="23" fill="'+GRAY+'" class="ln"/>'+
+      '<ellipse cx="0" cy="-3" rx="22" ry="23" fill="#fff" fill-opacity="0.28"/>'+
+      '<ellipse cx="0" cy="12" rx="19" ry="9" fill="#fff" class="ln"/>'+
+      '<circle cx="-7" cy="12" r="3.3" fill="none" class="ln2"/>'+
+      '<circle cx="7" cy="12" r="3.3" fill="none" class="ln2"/>'+item+hands+
+    '</g><text x="0" y="-38" class="av-t">'+esc(myName)+'</text></g>'+
+  '</svg>';
+}
+function controlsHtml(){
+  return '<div class="card ctrl"><div class="tag" id="nearhint">'+esc(nearText(nearDesk()))+'<br>WASD или стрелки — ходить, E — взять или убрать телефон и блокнот.</div>'+
+  (ST.pad?'<div class="dpad"><button class="alt" data-dir="U" aria-label="Вверх">▲</button><button class="alt" data-dir="L" aria-label="Влево">◀</button>'+
+  '<button class="alt" data-dir="D" aria-label="Вниз">▼</button><button class="alt" data-dir="R" aria-label="Вправо">▶</button></div>':'')+'</div>';
+}
+function renderPhone(){
+  var h='<div class="card"><h2>📞 Телефон</h2>';
+  if(call&&call.state==="active"){
+    h+='<p>На связи с комнатой <b>'+(call.room||G.rooms[call.with])+'</b>. Поговорите и поймите, кто там сидит.</p>'+
+    '<button class="alt" data-act="mic">'+(micOn?'🎤 Микрофон включён':'🔇 Микрофон выключен')+'</button>'+
+    '<button class="red" data-act="hangup">Положить трубку</button>';
+  }else if(call&&call.state==="out"){
+    h+='<p>Звоним в комнату <b>'+call.room+'</b>…</p><button class="red" data-act="hangup">Отменить</button>';
+  }else if(call&&call.state==="in"){
+    h+='<p>Вам звонят — ответьте в окне выше.</p>';
+  }else{
+    h+='<p class="hint" style="margin-top:0">Выберите комнату, в которую хотите позвонить.</p><div class="rooms">';
+    otherRooms().forEach(function(n){h+='<button class="alt" data-act="call" data-room="'+n+'">Комната '+n+'</button>';});
+    h+='</div><button class="alt" data-act="putdown">Положить телефон на стол</button>';
+  }
+  return h+'</div>';
+}
+function renderBook(){
+  var others=G.players.filter(function(p){return p.peer!==myPeer;});
+  var h='<div class="card"><h2>📓 Блокнот</h2><p class="hint" style="margin-top:0">Кто сидит в какой комнате? Отметьте каждого игрока ровно один раз.</p>';
+  otherRooms().forEach(function(n){
+    h+='<div class="brow"><b>Комната '+n+'</b><select data-room="'+n+'"'+(G.submitted?' disabled':'')+'><option value="">— выберите —</option>';
+    others.forEach(function(p){h+='<option value="'+esc(p.peer)+'"'+(G.notes[n]===p.peer?' selected':'')+'>'+esc(p.name)+'</option>';});
+    h+='</select></div>';
+  });
+  if(G.submitted){
+    h+='<p class="good" style="margin-bottom:0">Ответы отправлены ✓</p><div class="hint">Ждём: '+
+    esc(alivePlayers().filter(function(p){return !G.guesses[p.peer];}).map(function(p){return p.name;}).join(", ")||"…")+'</div>';
+  }else{
+    h+='<button data-act="submit">Готово, отправить ответы</button>';
+  }
+  h+='<button class="alt" data-act="putdown">Положить блокнот на стол</button>';
+  return h+'</div>';
+}
+function renderGame(){
+  var left=Math.max(0,Math.round((G.endAt-Date.now())/1000));
+  var h='<div class="gwrap"><div class="gleft"><div class="topbar"><b>Комната '+myRoom()+'</b><span class="pill">⏱ <span id="tm">'+fmt(left)+'</span></span></div>'+roomSvg()+'</div><div class="gright">'+controlsHtml();
+  if(call&&call.state==="in"){
+    h+='<div class="card incoming"><h2>📞 Звонок из комнаты '+(call.room||"?")+'</h2>'+
+    '<div class="row"><button class="green" data-act="answer">Ответить</button><button class="red" data-act="hangup">Сбросить</button></div></div>';
+  }
+  if(G.panel==="phone") h+=renderPhone();
+  else if(G.panel==="book") h+=renderBook();
+  else h+='<div class="card tag" style="text-align:center">Подойдите к столу и нажмите на телефон или блокнот.</div>';
+  if(S.note) h+='<p class="hint" style="text-align:center">'+esc(S.note)+'</p>';
+  return h+'</div></div>';
+}
+function renderReveal(){
+  var h=head()+'<div class="card"><h2>Кто где сидел</h2>';
+  for(var n=1;n<=G.players.length;n++){
+    var pid=peerOfRoom(n), right=G.right[n]||[];
+    h+='<div class="score"><span>Комната '+n+' — <b>'+esc(pid?nameOf(pid):"?")+'</b></span><span class="tag">'+
+    (right.length?'<span class="good">угадали: '+esc(right.join(", "))+'</span>':'<span class="bad">никто не угадал</span>')+'</span></div>';
+  }
+  h+='</div><div class="card"><h2>Счёт</h2>';
+  G.players.slice().sort(function(a,b){return (G.scores[b.peer]||0)-(G.scores[a.peer]||0);}).forEach(function(p){
+    h+='<div class="score"><span>'+esc(p.name)+'</span><b>'+(G.scores[p.peer]||0)+'</b></div>';
+  });
+  h+='</div>';
+  h+=isHost()?'<button data-act="again">Сыграть ещё раз</button>':'<p class="hint" style="text-align:center">Можно обсудить, кто как звучал 🎤. Хозяин может запустить новую игру.</p>';
+  return h+'<button class="alt" data-act="leave">Выйти</button>';
+}
+function render(){
+  var v=S.view, html="";
+  if(v==="wait") html=head()+'<div class="card" style="text-align:center">'+esc(S.busy)+'</div>';
+  else if(v==="lobby") html=renderLobby();
+  else if(v==="game"&&G) html=renderGame();
+  else if(v==="reveal"&&G) html=renderReveal();
+  else html=renderStart();
+  var fx=document.getElementById("fxbox"), fxState=fx?fx.checked:null;
+  $app.className=(v==="game")?"wide":"";
+  $app.innerHTML=html;
+  var fb=document.getElementById("fxbox"); if(fb&&fxState!==null) fb.checked=fxState;
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click",function(e){
+  var op=e.target.closest("[data-open]");
+  if(op&&G&&S.view==="game"){
+    var want=op.getAttribute("data-open"), busy=!!call&&call.state!=="in";
+    if(G.panel===want){
+      if(busy&&want==="phone") S.note="Сначала закончите разговор."; else {G.panel="none";S.note="";}
+      render();return;
+    }
+    if(!nearDesk()){S.note="Подойдите к столу, чтобы взять телефон или блокнот.";render();return;}
+    if(busy){S.note="Сначала закончите разговор.";render();return;}
+    S.note="";G.panel=want;render();return;
+  }
+  var b=e.target.closest("[data-act]"); if(!b) return;
+  var a=b.getAttribute("data-act");
+  if(a==="create") enter(true);
+  else if(a==="join") enter(false);
+  else if(a==="tutorial") openTut();
+  else if(a==="leave") fail("");
+  else if(a==="mic"){micOn=!micOn;applyAudio();render();}
+  else if(a==="start"){
+    var fx=document.getElementById("fxbox").checked, ps=getPlayers();
+    if(ps.length<3||ps.length>6) return;
+    var nums=shuffle(ps.map(function(_,i){return i+1;}));
+    var pool=shuffle([-0.5,-0.3,0.3,0.5,0.4,-0.4]);
+    var rooms={},pitch={};
+    ps.forEach(function(p,i){rooms[p.peer]=nums[i];pitch[p.peer]=fx?pool[i]:0;});
+    room.presence({phase:"play"});
+    room.emit("ctl",{t:"start",fx:fx,secs:ROUND_SEC,players:ps.map(function(p){return p.peer;}),rooms:rooms,pitch:pitch});
+  }
+  else if(a==="call") startCall(parseInt(b.getAttribute("data-room"),10));
+  else if(a==="answer") answerCall();
+  else if(a==="hangup") endCall(true,"");
+  else if(a==="submit") submitGuess(false);
+  else if(a==="putdown"){
+    if(call&&call.state!=="in") S.note="Сначала закончите разговор."; else {G.panel="none";S.note="";}
+    render();
+  }
+  else if(a==="again") room.emit("ctl",{t:"again"});
+});
+document.addEventListener("change",function(e){
+  var s=e.target.closest("select[data-room]"); if(!s||!G) return;
+  G.notes[parseInt(s.getAttribute("data-room"),10)]=s.value;S.note="";render();
+});
+
+/* ---------- music (generated in the browser, never sent to other players) ---------- */
+var music={gain:null,pad:null,arp:null,timer:null,next:0,bar:0};
+var TRACKS={
+  cozy:{bpm:78,chords:[[57,60,64,67],[53,57,60,64],[48,52,55,59],[55,59,62,64]],bass:[45,41,36,43],arp:"triangle",pat:[0,2,1,3,2,3,1,2],skip:0.22},
+  mystery:{bpm:64,chords:[[50,53,57,62],[46,50,53,58],[55,58,62,67],[57,61,64,69]],bass:[38,46,43,45],arp:"sine",pat:[0,1,2,3,2,1,3,2],skip:0.4}
+};
+function mtof(m){return 440*Math.pow(2,(m-69)/12);}
+function tone(type,freq,t,dur,vol,out,att){
+  var o=actx.createOscillator(), g=actx.createGain();
+  o.type=type;o.frequency.value=freq;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.linearRampToValueAtTime(0,t+dur);
+  o.connect(g);g.connect(out);o.start(t);o.stop(t+dur+0.05);
+}
+function scheduleBar(t,tr,idx){
+  var beat=60/tr.bpm, bar=4*beat, ci=idx%tr.chords.length, ch=tr.chords[ci];
+  ch.forEach(function(n,i){tone("triangle",mtof(n)*(i%2?1.003:0.997),t,bar+0.3,0.05,music.pad,0.6);});
+  tone("sine",mtof(tr.bass[ci]),t,beat*1.8,0.16,music.gain,0.02);
+  tone("sine",mtof(tr.bass[ci]),t+2*beat,beat*1.8,0.14,music.gain,0.02);
+  for(var i=0;i<8;i++){
+    if(Math.random()<tr.skip) continue;
+    tone(tr.arp,mtof(ch[tr.pat[i]]+12),t+i*beat/2,beat*1.3,0.05,music.arp,0.01);
+  }
+}
+function musicTick(){
+  if(!actx||!music.gain) return;
+  var tr=TRACKS[ST.track]||TRACKS.cozy;
+  while(music.next<actx.currentTime+2.5){scheduleBar(music.next,tr,music.bar);music.next+=4*60/tr.bpm;music.bar++;}
+}
+function musicEnsure(){
+  if(!actx||!music.gain) return;
+  if(ST.music&&!music.timer){music.next=actx.currentTime+0.15;music.bar=0;music.timer=setInterval(musicTick,500);musicTick();}
+  else if(!ST.music&&music.timer){clearInterval(music.timer);music.timer=null;}
+}
+function musicApply(){
+  if(!actx||!music.gain) return;
+  var game=!!G&&S.view==="game", active=!!call&&call.state==="active";
+  var duck=(game&&active)?0.3:1;
+  music.gain.gain.setTargetAtTime(ST.music?ST.vol*0.6*duck:0,actx.currentTime,0.15);
+}
+function musicBoot(){
+  try{
+    if(!actx||music.gain) return;
+    music.gain=actx.createGain();music.gain.gain.value=0;music.gain.connect(actx.destination);
+    var pf=actx.createBiquadFilter();pf.type="lowpass";pf.frequency.value=1300;pf.connect(music.gain);music.pad=pf;
+    var ab=actx.createGain();ab.connect(music.gain);
+    var dl=actx.createDelay(1);dl.delayTime.value=0.38;
+    var fb=actx.createGain();fb.gain.value=0.32;
+    var df=actx.createBiquadFilter();df.type="lowpass";df.frequency.value=1800;
+    ab.connect(dl);dl.connect(df);df.connect(fb);fb.connect(dl);df.connect(music.gain);
+    music.arp=ab;
+    musicEnsure();musicApply();
+  }catch(e){music.gain=null;}
+}
+
+/* ---------- settings ---------- */
+function buildSettings(){
+  var deskOpts=Object.keys(DESKS).map(function(k){return '<option value="'+k+'">'+esc(DESKS[k].name)+'</option>';}).join("");
+  return '<div class="sbox"><div class="shead"><h2>⚙ Настройки</h2><button class="alt" id="setclose">Закрыть</button></div>'+
+  '<label class="srow"><span>Фоновая музыка</span><input type="checkbox" data-set="music"></label>'+
+  '<div class="srow"><span>Громкость музыки</span><input type="range" min="0" max="100" data-set="vol"></div>'+
+  '<div class="srow"><span>Мелодия</span><select data-set="track"><option value="cozy">Уют</option><option value="mystery">Тайна</option></select></div>'+
+  '<div class="srow"><span>Громкость голосов</span><input type="range" min="0" max="100" data-set="voiceVol"></div>'+
+  '<div class="srow"><span>Скорость ходьбы</span><input type="range" min="120" max="300" data-set="speed"></div>'+
+  '<div class="srow"><span>Цвет стола</span><select data-set="desk">'+deskOpts+'</select></div>'+
+  '<div class="srow"><span>Тема</span><select data-set="theme"><option value="auto">Как в системе</option><option value="light">Светлая</option><option value="dark">Тёмная</option></select></div>'+
+  '<label class="srow"><span>Кнопки-стрелки на экране</span><input type="checkbox" data-set="pad"></label>'+
+  '<p class="hint">Музыку лучше слушать в наушниках: иначе друзья услышат её через ваш микрофон. Во время звонка музыка становится тише.</p></div>';
+}
+function syncSettingsUI(){
+  document.querySelectorAll("#setwrap [data-set]").forEach(function(el){
+    var k=el.getAttribute("data-set"), v=ST[k];
+    if(el.type==="checkbox") el.checked=!!v;
+    else if(el.type==="range") el.value=(k==="speed")?v:Math.round(v*100);
+    else el.value=v;
+  });
+}
+function applySettings(k){
+  var r=document.documentElement;
+  if(ST.theme==="auto") r.removeAttribute("data-theme"); else r.setAttribute("data-theme",ST.theme);
+  if(actx&&actx.state==="suspended") actx.resume();
+  musicEnsure();musicApply();applyAudio();
+  if((k==="desk"||k==="pad")&&G&&S.view==="game") render();
+}
+var wrap=document.getElementById("setwrap");
+wrap.innerHTML=buildSettings();
+document.getElementById("gear").addEventListener("click",function(){wrap.classList.add("open");syncSettingsUI();keys={};pad={};});
+wrap.addEventListener("click",function(e){if(e.target===wrap||e.target.id==="setclose") wrap.classList.remove("open");});
+function onSet(e){
+  var el=e.target.closest&&e.target.closest("[data-set]"); if(!el) return;
+  var k=el.getAttribute("data-set"), v;
+  if(el.type==="checkbox") v=el.checked;
+  else if(el.type==="range") v=(k==="speed")?Number(el.value):Number(el.value)/100;
+  else v=el.value;
+  ST[k]=v;saveST();applySettings(k);
+}
+wrap.addEventListener("input",onSet);
+wrap.addEventListener("change",onSet);
+document.addEventListener("keydown",function(e){if(e.code==="Escape") wrap.classList.remove("open");});
+applySettings("init");
+
+/* ---------- tutorial ---------- */
+var tutStep=0;
+function tChar(x,y,k,extra){
+  var l=' stroke="#000" stroke-width="2.5"';
+  return '<g transform="translate('+x+' '+y+') scale('+k+')"><ellipse rx="40" ry="27" fill="#9a9a9a"'+l+'/><ellipse cy="-3" rx="22" ry="23" fill="#9a9a9a"'+l+'/>'+
+    '<ellipse cy="-3" rx="22" ry="23" fill="#fff" fill-opacity=".28"/><ellipse cy="12" rx="19" ry="9" fill="#fff"'+l+'/>'+
+    '<circle cx="-7" cy="12" r="3.3" fill="none" stroke="#000" stroke-width="2"/><circle cx="7" cy="12" r="3.3" fill="none" stroke="#000" stroke-width="2"/>'+
+    (extra||'<circle cx="-37" cy="16" r="5.5" fill="#fff"'+l+'/><circle cx="37" cy="16" r="5.5" fill="#fff"'+l+'/>')+'</g>';
+}
+function tArt(inner){
+  return '<svg viewBox="0 0 300 150" role="img" aria-hidden="true"><rect width="300" height="150" fill="#f1e6cf"/>'+inner+'</svg>';
+}
+var TUT=[
+  {t:"Идея игры",art:function(){
+    var o="";
+    [[14,"1"],[110,"2"],[206,"3"]].forEach(function(r){
+      o+='<rect x="'+r[0]+'" y="20" width="80" height="110" rx="6" fill="#c19564" stroke="#000" stroke-width="3"/>'+
+         '<text x="'+(r[0]+40)+'" y="42" text-anchor="middle" font-size="17" font-weight="700" font-family="sans-serif">№ '+r[1]+'</text>'+tChar(r[0]+40,88,0.5)+
+         '<text x="'+(r[0]+40)+'" y="122" text-anchor="middle" font-size="22" font-weight="700" font-family="sans-serif">?</text>';
+    });
+    return tArt(o);},
+   p:["От 3 до 6 игроков. Каждый сидит в своей комнате с номером, и никто не знает, кто где.","Ваша задача: по телефону позвонить в другие комнаты и узнать по голосу, кто там сидит. Голоса изменены, так что быть внимательным придётся."]},
+  {t:"Лобби",art:function(){
+    return tArt('<rect x="80" y="14" width="140" height="48" rx="8" fill="#fff" stroke="#000" stroke-width="3"/><text x="150" y="49" text-anchor="middle" font-size="32" font-weight="800" letter-spacing="6" font-family="sans-serif">ABCD</text>'+
+      tChar(70,112,0.55)+tChar(150,112,0.55)+tChar(230,112,0.55));},
+   p:["Один игрок нажимает «Создать лобби» и получает код из 4 символов. Остальные открывают игру, вводят имя и этот код, потом нажимают «Войти».","Пока вы ждёте, можно разговаривать голосом. Зелёная точка рядом с именем значит, что связь есть. Когда все собрались, хозяин лобби нажимает «Начать игру»."]},
+  {t:"Комната и ходьба",art:function(){
+    var keys="";
+    [["W",230,22],["A",204,48],["S",230,48],["D",256,48]].forEach(function(k){
+      keys+='<rect x="'+(k[1]-11)+'" y="'+(k[2]-11)+'" width="22" height="22" rx="4" fill="#fff" stroke="#000" stroke-width="2"/><text x="'+k[1]+'" y="'+(k[2]+5)+'" text-anchor="middle" font-size="13" font-weight="700" font-family="sans-serif">'+k[0]+'</text>';
+    });
+    return tArt('<rect x="10" y="10" width="170" height="130" rx="6" fill="#c19564" stroke="#000" stroke-width="3"/><rect x="60" y="108" width="70" height="32" fill="#5b3a24" stroke="#000" stroke-width="3"/>'+
+      tChar(95,60,0.6)+keys+'<text x="230" y="95" text-anchor="middle" font-size="12" font-family="sans-serif">или стрелки</text>');},
+   p:["Ходите по комнате клавишами WASD или стрелками. На телефоне есть кнопки-стрелки под комнатой.","Телефон и блокнот лежат на столе у нижней стены. Подойдите к столу и нажмите на нужный предмет (или клавишу E). Если нажать ещё раз, предмет вернётся на стол."]},
+  {t:"Телефон",art:function(){
+    return tArt(tChar(120,78,1.1,'<polygon points="'+hsPoly(31,-3,0.17,true)+'" fill="#c8102e" stroke="#000" stroke-width="2" stroke-linejoin="round"/><circle cx="38" cy="-2" r="5.5" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="-37" cy="16" r="5.5" fill="#fff" stroke="#000" stroke-width="2.5"/>')+
+      '<rect x="205" y="45" width="80" height="60" rx="8" fill="#fff" stroke="#000" stroke-width="3"/><text x="245" y="72" text-anchor="middle" font-size="26" font-family="sans-serif">📞</text><text x="245" y="95" text-anchor="middle" font-size="13" font-weight="700" font-family="sans-serif">Комната 3</text>');},
+   p:["Возьмите телефон, выберите номер комнаты и позвоните. Игрок в той комнате услышит звонок и сможет ответить или сбросить.","Во время игры микрофон включён только в разговоре, поэтому подсказать вам никто не сможет. Вам тоже могут позвонить: нажмите «Ответить» в окне звонка (или клавишу E).","Поговорите и поймите, кто в этой комнате. Зовите по именам, задавайте вопросы, о которых знаете только вы с друзьями."]},
+  {t:"Блокнот",art:function(){
+    return tArt('<rect x="70" y="10" width="160" height="130" rx="4" fill="#fff" stroke="#000" stroke-width="3"/><text x="150" y="38" text-anchor="middle" font-size="12" font-weight="700" font-family="sans-serif">Комната 1 — Аня</text><text x="150" y="60" text-anchor="middle" font-size="12" font-weight="700" font-family="sans-serif">Комната 3 — Максим</text><text x="150" y="82" text-anchor="middle" font-size="12" font-weight="700" font-family="sans-serif">Комната 4 — ?</text>');},
+   p:["В блокноте у каждой комнаты (кроме вашей) выберите игрока, который, по-вашему, там сидит. Каждого можно выбрать только один раз.","Когда всё заполнено, нажмите «Готово». На раунд даётся 7 минут. Когда время выйдет, ответы отправятся сами."]},
+  {t:"Итоги",art:function(){return tArt('<text x="150" y="88" text-anchor="middle" font-size="64" font-family="sans-serif">🏆</text><text x="150" y="130" text-anchor="middle" font-size="13" font-weight="700" font-family="sans-serif">Угадал больше комнат — победил</text>');},
+   p:["Когда все сдали блокноты, игра покажет, кто в какой комнате сидел и кто угадал. За каждую правильно угаданную комнату вы получаете очко.","После раунда голоса снова обычные, можно поспорить. Хозяин может запустить игру заново. Лучше играть в наушниках, чтобы музыка и разговоры не попадали в микрофон."]}
+];
+function renderTut(){
+  var st=TUT[tutStep], dots="";
+  for(var i=0;i<TUT.length;i++) dots+=(i===tutStep?"●":"○");
+  var last=tutStep===TUT.length-1;
+  document.getElementById("tutwrap").innerHTML='<div class="sbox"><div class="shead"><h2>📖 '+esc(st.t)+'</h2><button class="alt" data-tut="close">Закрыть</button></div>'+
+    '<div class="tart">'+st.art()+'</div>'+st.p.map(function(x){return '<p class="tp">'+esc(x)+'</p>';}).join("")+
+    '<div class="tdots" aria-label="Шаг '+(tutStep+1)+' из '+TUT.length+'">'+dots+'</div>'+
+    '<div class="tnav">'+(tutStep>0?'<button class="alt" data-tut="prev">Назад</button>':'')+
+    '<button data-tut="'+(last?'close':'next')+'">'+(last?'Понятно, играем!':'Далее')+'</button></div></div>';
+}
+function openTut(){tutStep=0;renderTut();document.getElementById("tutwrap").classList.add("open");}
+function closeTut(){document.getElementById("tutwrap").classList.remove("open");}
+document.getElementById("tutwrap").addEventListener("click",function(e){
+  var b=e.target.closest&&e.target.closest("[data-tut]");
+  if(b){
+    var a=b.getAttribute("data-tut");
+    if(a==="close") closeTut();
+    else if(a==="next"&&tutStep<TUT.length-1){tutStep++;renderTut();}
+    else if(a==="prev"&&tutStep>0){tutStep--;renderTut();}
+  }else if(e.target.id==="tutwrap") closeTut();
+});
+document.addEventListener("keydown",function(e){if(e.code==="Escape") closeTut();});
+
+var KEYMAP={KeyW:"U",ArrowUp:"U",KeyS:"D",ArrowDown:"D",KeyA:"L",ArrowLeft:"L",KeyD:"R",ArrowRight:"R"};
+document.addEventListener("keydown",function(e){
+  if(!G||S.view!=="game"||wrap.classList.contains("open")||document.getElementById("tutwrap").classList.contains("open")) return;
+  var tg=e.target&&e.target.tagName; if(tg==="SELECT"||tg==="INPUT"||tg==="TEXTAREA") return;
+  var d=KEYMAP[e.code];
+  if(d){keys[d]=true;e.preventDefault();}
+  else if(e.code==="KeyE"&&!e.repeat){
+    if(call&&call.state==="in"){answerCall();return;}
+    if(call&&call.state!=="in"){S.note="Сначала закончите разговор.";render();return;}
+    var nr=nearDesk();
+    if(G.panel!=="none"&&!nr){G.panel="none";}
+    else if(!nr){S.note="Подойдите к столу, чтобы взять телефон или блокнот.";render();return;}
+    else G.panel=G.panel==="none"?"phone":(G.panel==="phone"?"book":"none");
+    S.note="";render();
+  }
+});
+document.addEventListener("keyup",function(e){var d=KEYMAP[e.code];if(d) keys[d]=false;});
+window.addEventListener("blur",function(){keys={};pad={};});
+document.addEventListener("pointerdown",function(e){
+  var b=e.target.closest&&e.target.closest("[data-dir]");
+  if(b){pad[b.getAttribute("data-dir")]=true;e.preventDefault();}
+});
+["pointerup","pointercancel"].forEach(function(ev){document.addEventListener(ev,function(){pad={};});});
+
+render();
+})();
+</script>
+</body>
+</html>
